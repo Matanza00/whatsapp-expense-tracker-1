@@ -56,10 +56,19 @@ sock.ev.on("messages.upsert", async ({ messages }) => {
   const msg = messages[0];
   if (!msg.message) return;
 
-  const jid = msg.key.remoteJid;
+  const remoteJid = msg.key.remoteJid;
 
-  // ✅ Only process group messages
-  if (!jid.endsWith("@g.us")) return;
+  // 1️⃣ Only allow groups
+  if (!remoteJid.endsWith("@g.us")) return;
+
+  // 2️⃣ Fetch group metadata
+  const metadata = await sock.groupMetadata(remoteJid);
+
+  // 3️⃣ Only allow specific group name
+  if (metadata.subject !== "CFO Bot") return;
+
+  // 4️⃣ Ignore bot's own messages
+  if (msg.key.fromMe) return;
 
   const text =
     msg.message.conversation ||
@@ -67,17 +76,14 @@ sock.ev.on("messages.upsert", async ({ messages }) => {
 
   if (!text) return;
 
-  console.log("📩 Incoming:", text);
-
-  // 🚫 Ignore bot replies (messages starting with ✅)
-  if (text.startsWith("✅")) return;
+  console.log("📩 CFO Incoming:", text);
 
   const parsed = parseMessage(text);
   if (!parsed) return;
 
   await appendToSheet(parsed);
 
-  await sock.sendMessage(jid, {
+  await sock.sendMessage(remoteJid, {
     text: `✅ ${parsed.type} ${parsed.amount} PKR recorded under ${parsed.category}`,
   });
 });
