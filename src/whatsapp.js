@@ -58,23 +58,21 @@ sock.ev.on("messages.upsert", async ({ messages }) => {
 
   const remoteJid = msg.key.remoteJid;
 
-  // 1️⃣ Only allow groups
+  // Only groups
   if (!remoteJid.endsWith("@g.us")) return;
 
-  // 2️⃣ Fetch group metadata
   const metadata = await sock.groupMetadata(remoteJid);
 
-  // 3️⃣ Only allow specific group name
   if (metadata.subject !== "CFO Bot") return;
-
-  // 4️⃣ Ignore bot's own messages
-  if (msg.key.fromMe) return;
 
   const text =
     msg.message.conversation ||
     msg.message.extendedTextMessage?.text;
 
   if (!text) return;
+
+  // Ignore bot's own sent messages
+  if (text?.startsWith("✅")) return;
 
   console.log("📩 CFO Incoming:", text);
 
